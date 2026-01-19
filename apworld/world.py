@@ -21,15 +21,15 @@ from . import items, locations, options, regions, rules, web_world
 # This implementation in particular has the following additional files, each covering one topic:
 # regions.py, locations.py, rules.py, items.py, options.py and web_world.py.
 # It is recommended that you read these in that specific order, then come back to the world class.
-class APChecksMateXVI(World):
+class APChessWorld(World):
     """
-    ChecksMate XVI is a hardcore permadeath roguelike where you have to out-manoeuvre your AI opponent and gradually build up your army using a variety of pieces.
+    APChess is a hardcore permadeath roguelike where you have to out-manoeuvre your AI opponent and gradually build up your army using a variety of pieces.
     In other words: It's Chess, but with extra piece types, multiple enemy army setups, and a setup planner.
     """
-    game = "ChecksMate XVI"
-    web = web_world.APChecksMateXVIWeb()
-    options_dataclass = options.APQuestOptions
-    options: options.APChecksMateXVIOptions
+    game = "APChess"
+    web = web_world.APChessWeb()
+    options_dataclass = options.APChessOptions
+    options: options.APChessOptions
     location_name_to_id = locations.LOCATION_NAME_TO_ID
     item_name_to_id = items.ITEM_NAME_TO_ID
     origin_region_name = "Game"
@@ -44,7 +44,7 @@ class APChecksMateXVI(World):
     def create_items(self) -> None:
         items.create_all_items(self)
 
-    def create_item(self, name: str) -> items.APChecksMateXVIItem:
+    def create_item(self, name: str) -> items.APChessItem:
         return items.create_item_with_correct_classification(self, name)
 
     def get_filler_item_name(self) -> str:

@@ -6,9 +6,9 @@ from BaseClasses import CollectionState
 from worlds.generic.Rules import add_rule, set_rule
 
 if TYPE_CHECKING:
-    from .world import APChecksMateXVI
+    from .world import APChessWorld
 
-def set_all_rules(world: APChecksMateXVI) -> None:
+def set_all_rules(world: APChessWorld) -> None:
     set_all_location_rules(world)
     set_completion_condition(world)
 
@@ -24,7 +24,7 @@ PIECE_BOARDS = {
     "Kingside Attendant Pawn": ["Wide"]
 }
 
-def set_all_location_rules(world: APChecksMateXVI) -> None:
+def set_all_location_rules(world: APChessWorld) -> None:
     for piece,places in PIECE_BOARDS:
         set_rule(
             world.get_location("Capture: " .. piece),
@@ -32,7 +32,7 @@ def set_all_location_rules(world: APChecksMateXVI) -> None:
         )
     # TODO: expected points/unlocks for locations
 
-def set_completion_condition(world: APChecksMateXVI) -> None:
+def set_completion_condition(world: APChessWorld) -> None:
     # TODO: has all boards and has expected points/unlocks for their victory items
     # TODO: handle options - world.options.??? = ???
     

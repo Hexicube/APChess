@@ -1,4 +1,4 @@
-## ChecksMate XVI
+## APChess
 
 A chess game for Archipelago, featuring:
 - Fairy Pieces

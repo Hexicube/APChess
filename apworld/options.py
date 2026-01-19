@@ -36,7 +36,7 @@ class SetupPoints(Range):
     default = 10
 
 @dataclass
-class APChecksMateXVIOptions(PerGameCommonOptions):
+class APChessOptions(PerGameCommonOptions):
     goal: Goal
     points: SetupPoints
 

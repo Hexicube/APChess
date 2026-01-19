@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from BaseClasses import Item, ItemClassification
 
 if TYPE_CHECKING:
-    from .world import APChecksMateXVI
+    from .world import APChessWorld
 
 # Every item must have a unique integer ID associated with it.
 # We will have a lookup from item name to ID here that, in world.py, we will import and bind to the world class.
@@ -56,18 +56,18 @@ DEFAULT_ITEM_CLASSIFICATIONS = {
     "Board: Wide": ItemClassification.progression,
 }
 
-class APChecksMateXVIItem(Item):
-    game = "ChecksMate XVI"
+class APChessItem(Item):
+    game = "APChess"
 
-def get_random_filler_item_name(world: APChecksMateXVI) -> str:
+def get_random_filler_item_name(world: APChessWorld) -> str:
     # should never be needed
     return "Setup: More Points"
 
-def create_item_with_correct_classification(world: APChecksMateXVI, name: str) -> ChecksMateItem:
+def create_item_with_correct_classification(world: APChessWorld, name: str) -> APChessItem:
     classification = DEFAULT_ITEM_CLASSIFICATIONS[name] or ItemClassification.useful
     return ChecksMateItem(name, classification, ITEM_NAME_TO_ID[name], world.player)
 
-def create_all_items(world: APChecksMateXVI) -> None:
+def create_all_items(world: APChessWorld) -> None:
     itempool = []
     for name,id in ITEM_NAME_TO_ID:
         qty = ITEM_COUNTS[name] or 1

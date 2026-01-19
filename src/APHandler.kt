@@ -6,7 +6,7 @@ import java.util.concurrent.CompletionStage
 
 class APConnectionManager : WebSocket.Listener {
     companion object {
-        private val GAME_NAME = "ChecksMate XVI"
+        private val GAME_NAME = "APChess"
         private val AP_VERSION = APNetworkVersion(6, 1, 0)
         private val GEN_VERSION = APNetworkVersion(1, 0, 0)
     }

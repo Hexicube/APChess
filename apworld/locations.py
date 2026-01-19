@@ -7,7 +7,7 @@ from BaseClasses import ItemClassification, Location
 from . import items
 
 if TYPE_CHECKING:
-    from .world import APChecksMateXVI
+    from .world import APChessWorld
 
 LOCATION_NAME_TO_ID = {
     # specific piece capture
@@ -87,12 +87,12 @@ LOCATION_NAME_TO_ID = {
     "Win: Wide Board": 213
 }
 
-class ChecksMateLocation(Location):
-    game = "ChecksMate XVI"
+class APChessLocation(Location):
+    game = "APChess"
 
 def get_location_names_with_ids(location_names: list[str]) -> dict[str, int | None]:
     return {location_name: LOCATION_NAME_TO_ID[location_name] for location_name in location_names}
 
-def create_all_locations(world: APChecksMateXVI) -> None:
+def create_all_locations(world: APChessWorld) -> None:
     region = world.get_region("Game")
-    region.add_location(LOCATION_NAME_TO_ID, ChecksMateLocation)
+    region.add_location(LOCATION_NAME_TO_ID, APChessLocation)
