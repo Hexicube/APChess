@@ -111,6 +111,7 @@ class LocationHelper {
         }
 
         fun examineMove(board: Board, startBoard: Board, move: Move) {
+            if (move.start < 0) return // moved out of pocket
             // king move to place
             val movedPiece = board.state[move.start]!!
             if (movedPiece.type.type == PieceClass.KING) {

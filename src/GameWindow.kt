@@ -68,6 +68,15 @@ class GameWindow : JFrame("APChess V0.1") {
         mainContainer.add(scrollPane)
 
         contentPane = mainContainer
+        // testing: add pawns to pockets
+        val theBoard = board.getBoard()
+        theBoard.pockets[0] = Piece(PieceType.PAWN, true, false, "Pocket 1")
+        theBoard.pockets[1] = Piece(PieceType.PAWN, true, false, "Pocket 2")
+        theBoard.pockets[2] = Piece(PieceType.PAWN, true, false, "Pocket 3")
+        theBoard.pockets[3] = Piece(PieceType.PAWN, false, false, "Pocket 1")
+        theBoard.pockets[4] = Piece(PieceType.PAWN, false, false, "Pocket 2")
+        theBoard.pockets[5] = Piece(PieceType.PAWN, false, false, "Pocket 3")
+        board.setBoard(theBoard)
     }
 
     fun refreshChecks(boardType: Board) {
@@ -240,18 +249,18 @@ class ChessBoard(val frame: GameWindow) : JPanel() {
                 if (p0 == null || (!_board.isWhiteToMove && !DEBUG_TWOPLAYER)) return
 
                 var py = p0.point.y - BORDER_SIZE
-                if (py < 0 || py >= CELL_SIZE * 16) return
-                val cellY = 15 - py / CELL_SIZE
+                if (py < 0 || py >= CELL_SIZE * 10) return
+                val cellY = 9 - py / CELL_SIZE
 
                 var px = p0.point.x - BORDER_SIZE
                 if (px < 0) return
-                if (px >= CELL_SIZE * 16) {
+                if (px >= CELL_SIZE * 12) {
                     px -= BORDER_SIZE
-                    if (px < CELL_SIZE * 16 || px >= CELL_SIZE * 17) return
+                    if (px < CELL_SIZE * 12 || px >= CELL_SIZE * 13) return
                 }
                 val cellX = px / CELL_SIZE
 
-                if (cellX == 16) {
+                if (cellX == 12) {
                     if (_board.isWhiteToMove && (cellY == 1 || cellY == 2 || cellY == 3)) {
                         if (selectY == -1) {
                             if (_board.pockets[cellY - 1] != null) {
@@ -261,7 +270,7 @@ class ChessBoard(val frame: GameWindow) : JPanel() {
                         }
                         else if (selectX == -1 && selectY == cellY) selectY = -1
                     }
-                    if (!_board.isWhiteToMove && (cellY == 14 || cellY == 13 || cellY == 12)) {
+                    if (!_board.isWhiteToMove && (cellY == 8 || cellY == 7 || cellY == 6)) {
                         if (selectY == -1) {
                             if (_board.pockets[17 - cellY] != null) {
                                 selectX = -1
@@ -272,8 +281,8 @@ class ChessBoard(val frame: GameWindow) : JPanel() {
                     }
                 }
                 else {
-                    val offsetX = (16 - _board.width) / 2
-                    val offsetY = (16 - _board.height) / 2
+                    val offsetX = (12 - _board.width) / 2
+                    val offsetY = (10 - _board.height) / 2
                     val boardX = cellX - offsetX
                     if (boardX < 0 || boardX >= _board.width) return
                     val boardY = cellY - offsetY
@@ -342,7 +351,7 @@ class ChessBoard(val frame: GameWindow) : JPanel() {
         _board.getMoves(validMoves)
     }
 
-    override fun getPreferredSize() = Dimension(CELL_SIZE * 17 + BORDER_SIZE * 3, CELL_SIZE * 16 + BORDER_SIZE * 2)
+    override fun getPreferredSize() = Dimension(CELL_SIZE * 13 + BORDER_SIZE * 3, CELL_SIZE * 10 + BORDER_SIZE * 2)
 
     fun drawCell(g: Graphics, x: Int, y: Int, boardX: Int, boardY: Int) {
         val cell = boardY * _board.width + boardX
@@ -393,15 +402,15 @@ class ChessBoard(val frame: GameWindow) : JPanel() {
     override fun paint(g: Graphics?) {
         if (g == null) return
 
-        val offsetX = (16 - _board.width) / 2
-        val offsetY = (16 - _board.height) / 2
+        val offsetX = (12 - _board.width) / 2
+        val offsetY = (10 - _board.height) / 2
         g.color = Color.BLACK
         g.fillRect(0, 0, size.width, size.height)
-        for (x in 0 until 17) {
-            for (y in 0 until 16) {
+        for (x in 0 until 13) {
+            for (y in 0 until 10) {
                 val boardX = x - offsetX
-                val boardY = (15 - y) - offsetY
-                if (x < 16) {
+                val boardY = (9 - y) - offsetY
+                if (x < 12) {
                     if (boardX < 0 || boardX >= _board.width || boardY < 0 || boardY >= _board.height) {
                         g.color = if ((x + y) % 2 == 0) CELL_OUTER_LIGHT else CELL_OUTER_DARK
                         g.fillRect(BORDER_SIZE + x * CELL_SIZE, BORDER_SIZE + y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
@@ -421,9 +430,9 @@ class ChessBoard(val frame: GameWindow) : JPanel() {
                         g.fillRect(BORDER_SIZE * 2 + x * CELL_SIZE, BORDER_SIZE + y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
                         if (_board.pockets[pocketID] != null) drawPiece(g, _board.pockets[pocketID]!!, BORDER_SIZE * 2 + x * CELL_SIZE, BORDER_SIZE + y * CELL_SIZE)
                     }
-                    else if (y == 14 || y == 13 || y == 12) {
+                    else if (y == 8 || y == 7 || y == 6) {
                         // pocket white
-                        val pocketID = 14 - y
+                        val pocketID = 8 - y
                         g.color = CELL_POCKET
                         if (selectX == -1 && selectY == pocketID + 1) g.color = CELL_HIGHLIGHT
                         g.fillRect(BORDER_SIZE * 2 + x * CELL_SIZE, BORDER_SIZE + y * CELL_SIZE, CELL_SIZE, CELL_SIZE)

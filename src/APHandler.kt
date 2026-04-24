@@ -146,7 +146,12 @@ class APConnectionManager : WebSocket.Listener {
                     val checkedLocations = data.get("checked_locations").asJsonArray.map { it.asInt }
                     LocationHelper.setLocationList(checkedLocations, missingLocations)
                     GameWindow.inst.refreshChecks(ChessBoard.currentBoardType)
-                    //val slotData = ??? (not required?)
+                    //val slotData = ???
+                    /*
+                    TODO: handle slotData, it contains settings
+                    - goal: Target goal (int), parse this for displaying objective somewhere
+                    - points: Starting setup points (int)
+                    */
                     val slotInfo = data.get("slot_info").asJsonObject // TODO: NetworkSlot
                     val hintPoints = data.get("hint_points").asInt
 
