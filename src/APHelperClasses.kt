@@ -66,12 +66,12 @@ data class APNetworkVersion(val major: Int, val minor: Int, val build: Int) {
             return APNetworkVersion(json.get("major").asInt, json.get("minor").asInt, json.get("build").asInt)
         }
     }
-    fun toJson(classStr: String? = null): JsonElement {
+    fun toJson(): JsonElement {
         val obj = JsonObject()
         obj.add("major", JsonPrimitive(major))
         obj.add("minor", JsonPrimitive(minor))
         obj.add("build", JsonPrimitive(build))
-        if (classStr != null) obj.add("class", JsonPrimitive(classStr))
+        obj.add("class", JsonPrimitive("Version"))
         return obj
     }
 }

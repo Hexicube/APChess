@@ -4,6 +4,7 @@ import java.awt.Graphics
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.io.File
+import java.net.URI
 import java.util.Timer
 import java.util.TimerTask
 import javax.imageio.ImageIO
@@ -11,23 +12,37 @@ import javax.swing.*
 import kotlin.math.min
 
 fun main() {
-    val window = GameWindow()
+    val window = GameWindow.inst
     window.pack()
     window.isResizable = false
     window.isVisible = true
     window.defaultCloseOperation = JFrame.EXIT_ON_CLOSE // TODO: confirm exit
 }
 
-class GameWindow : JFrame("ChecksMate XVI V0.1") {
+class GameWindow : JFrame("APChess V0.1") {
     val scoreLabel = JLabel("AI score estimate: ?")
     val board = ChessBoard(this)
     val checkList = JPanel()
     val itemList = JPanel()
+    companion object {
+        val conn = APConnectionManager()
+        val inst = GameWindow()
+    }
     init {
         val mainContainer = JPanel()
         mainContainer.layout = BoxLayout(mainContainer, BoxLayout.X_AXIS)
 
         // left panel: AP stuff
+        val APContainer = JPanel()
+
+        // TODO: fields to enter server IP/port/slot/pass
+        val connectButton = JButton("Connect localhost:38281")
+        connectButton.addActionListener {
+            conn.connect(URI("ws://127.0.0.1:38281"))
+        }
+        APContainer.add(connectButton)
+
+        mainContainer.add(APContainer)
 
         // main panel: game board + pocket pieces
         val boardContainer = JPanel()
@@ -84,6 +99,7 @@ class GameWindow : JFrame("ChecksMate XVI V0.1") {
             }
         }
         checkList.validate()
+        itemList.validate()
     }
 }
 

@@ -2,12 +2,14 @@ import com.google.gson.*
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.WebSocket
+import java.nio.ByteBuffer
+import java.util.UUID
 import java.util.concurrent.CompletionStage
 
 class APConnectionManager : WebSocket.Listener {
     companion object {
         private val GAME_NAME = "APChess"
-        private val AP_VERSION = APNetworkVersion(6, 1, 0)
+        private val AP_VERSION = APNetworkVersion(0, 6, 7)
         private val GEN_VERSION = APNetworkVersion(1, 0, 0)
     }
 
@@ -36,10 +38,15 @@ class APConnectionManager : WebSocket.Listener {
 
     private fun disconnect() {
         try {
-            socket?.sendClose(0, "")?.get()
+            socket?.sendClose(1000, "")?.get()
+            socket?.abort()
+        }
+        catch (e: Exception) {
+            e.printStackTrace()
+        }
+        finally {
             socket = null
         }
-        catch (_: Exception) {}
         connectionState = 0
     }
 
@@ -52,11 +59,13 @@ class APConnectionManager : WebSocket.Listener {
         println("Open: ${webSocket.toString()}")
         if (socket != null) println("[WARN] Socket was overridden")
         socket = webSocket
+        webSocket?.request(1)
     }
 
     override fun onError(webSocket: WebSocket?, error: Throwable?) {
         if (socket != webSocket) println("[WARN] Socket mismatch on error")
         error?.printStackTrace()
+        webSocket?.request(1)
     }
 
     override fun onClose(webSocket: WebSocket?, statusCode: Int, reason: String?): CompletionStage<*>? {
@@ -65,130 +74,151 @@ class APConnectionManager : WebSocket.Listener {
         return null
     }
 
+    private val parts: ArrayList<CharSequence> = ArrayList()
     override fun onText(webSocket: WebSocket?, data: CharSequence?, last: Boolean): CompletionStage<*>? {
+        webSocket?.request(1)
+        if (data == null) return null
         if (socket != webSocket) println("[WARN] Socket mismatch on text in")
-        val text = data?.toString() ?: return null
+        parts.add(data)
+        if (!last) return null
+
+        val text = parts.joinToString("")
+        parts.clear()
         println("Text in: $text")
-        val data = JsonParser.parseString(text).asJsonObject
-        when (val id = data.get("cmd").asString) {
-            "RoomInfo" -> {
-                if (connectionState != 0) {
-                    println("[WARN] RoomInfo packet received at wrong time, ignoring")
-                    return null
-                }
-                val APVersion = APNetworkVersion.fromJson(data.get("version").asJsonObject)
-                if (APVersion != AP_VERSION) println("[WARN] Server AP version does not match supported version")
-                val genVersion = APNetworkVersion.fromJson(data.get("generator_version").asJsonObject)
-                if (genVersion != GEN_VERSION) println("[WARN] Server gen version does not match supported version")
-                val tags = data.get("tags").asJsonArray.map { it.asString }
-                val needsPassword = data.get("password")
-                val perms = data.get("permissions").asJsonObject.asMap() // TODO: int map?
-                val hintCost = data.get("hint_cost").asInt
-                val locationCheckPoints = data.get("location_check_points").asInt
-                val gameList = data.get("games").asJsonArray.map { it.asString }
-                if (!gameList.contains(GAME_NAME)) {
-                    // TODO: show this as an error
-                    println("[ERR ] Room does not contains this game")
-                    disconnect()
-                    return null
-                }
-                // TODO: datapackage_checksums dict[str,str]
-                val seed = data.get("seed_name").asString
-                val time = data.get("time").asFloat
+        val dataList = JsonParser.parseString(text).asJsonArray
+        for (entry in dataList) {
+            val data = entry.asJsonObject
+            when (val id = data.get("cmd").asString) {
+                "RoomInfo" -> {
+                    if (connectionState != 0) {
+                        println("[WARN] RoomInfo packet received at wrong time, ignoring")
+                        return null
+                    }
+                    val APVersion = APNetworkVersion.fromJson(data.get("version").asJsonObject)
+                    if (APVersion != AP_VERSION) println("[WARN] Server AP version does not match supported version")
+                    val genVersion = APNetworkVersion.fromJson(data.get("generator_version").asJsonObject)
+                    if (genVersion != AP_VERSION) println("[WARN] Server gen version does not match supported version")
+                    val tags = data.get("tags").asJsonArray.map { it.asString }
+                    val needsPassword = data.get("password")
+                    val perms = data.get("permissions").asJsonObject.asMap() // TODO: int map?
+                    val hintCost = data.get("hint_cost").asInt
+                    val locationCheckPoints = data.get("location_check_points").asInt
+                    val gameList = data.get("games").asJsonArray.map { it.asString }
+                    if (!gameList.contains(GAME_NAME)) {
+                        // TODO: show this as an error
+                        println("[ERR ] Room does not contains this game")
+                        disconnect()
+                        return null
+                    }
+                    // TODO: datapackage_checksums dict[str,str]
+                    val seed = data.get("seed_name").asString
+                    val time = data.get("time").asFloat
 
-                connectionState = 1
-                // TODO: GetDataPackage?
-                connectionState = 2
-                // TODO: get details for Connect
-                sendConnect("", "", null)
-            }
-            "ConnectionRefused" -> {
-                if (connectionState != 2) {
-                    println("[WARN] ConnectionRefused packet received at wrong time, ignoring")
-                    return null
+                    connectionState = 1
+                    // TODO: GetDataPackage?
+                    connectionState = 2
+                    // TODO: get details for Connect
+                    // TODO: generate and locally store UUID
+                    sendConnect("ChessTest", UUID.randomUUID().toString(), null)
                 }
-                val errors = data.get("errors").asJsonArray.map { it.asString }
-                // TODO: handle this
-                // InvalidSlot: "name" not found
-                // InvalidGame: name does not match game
-                // IncompatibleVersion: version mismatch
-                // InvalidPassword: missing or wrong password
-                // InvalidItemsHandling: Bad flags
-            }
-            "Connected" -> {
-                if (connectionState != 2) {
-                    println("[WARN] Connected packet received at wrong time, ignoring")
-                    return null
+                "ConnectionRefused" -> {
+                    if (connectionState != 2) {
+                        println("[WARN] ConnectionRefused packet received at wrong time, ignoring")
+                        return null
+                    }
+                    val errors = data.get("errors").asJsonArray.map { it.asString }
+                    // TODO: handle this
+                    // InvalidSlot: "name" not found
+                    // InvalidGame: name does not match game
+                    // IncompatibleVersion: version mismatch
+                    // InvalidPassword: missing or wrong password
+                    // InvalidItemsHandling: Bad flags
                 }
-                val team = data.get("team").asInt
-                val slot = data.get("slot").asInt
-                val players = data.get("players").asJsonArray.map { APNetworkPlayer.fromJson(it.asJsonObject) }
-                val missingLocations = data.get("missing_locations").asJsonArray.map { it.asInt }
-                val checkedLocations = data.get("checked_locations").asJsonArray.map { it.asInt }
-                //val slotData = ??? (not required?)
-                val slotInfo = data.get("slot_info").asJsonArray.map { it.asString } // TODO: NetworkSlot
-                val hintPoints = data.get("hint_points").asInt
+                "Connected" -> {
+                    if (connectionState != 2) {
+                        println("[WARN] Connected packet received at wrong time, ignoring")
+                        return null
+                    }
+                    val team = data.get("team").asInt
+                    val slot = data.get("slot").asInt
+                    val players = data.get("players").asJsonArray.map { APNetworkPlayer.fromJson(it.asJsonObject) }
+                    val missingLocations = data.get("missing_locations").asJsonArray.map { it.asInt }
+                    val checkedLocations = data.get("checked_locations").asJsonArray.map { it.asInt }
+                    LocationHelper.setLocationList(checkedLocations, missingLocations)
+                    GameWindow.inst.refreshChecks(ChessBoard.currentBoardType)
+                    //val slotData = ??? (not required?)
+                    val slotInfo = data.get("slot_info").asJsonObject // TODO: NetworkSlot
+                    val hintPoints = data.get("hint_points").asInt
 
-                // TODO: update state
+                    // TODO: update state
 
-                connectionState = 3
-            }
-            "ReceivedItems" -> {
-                if (connectionState != 3) {
-                    println("[WARN] ReceivedItems packet received at wrong time, ignoring")
-                    return null
+                    connectionState = 3
                 }
-                val index = data.get("index").asInt
-                val items = data.get("items").asJsonArray.map { APNetworkItem.fromJson(it.asJsonObject) }
-
-                // TODO: update state
-            }
-            "LocationInfo" -> {
-                // Response packet for LocationScouts
-                if (connectionState != 3) {
-                    println("[WARN] LocationInfo packet received at wrong time, ignoring")
-                    return null
+                "ReceivedItems" -> {
+                    if (connectionState != 3) {
+                        println("[WARN] ReceivedItems packet received at wrong time, ignoring")
+                        return null
+                    }
+                    val index = data.get("index").asInt
+                    val items = data.get("items").asJsonArray.map { APNetworkItem.fromJson(it.asJsonObject) }
+                    for (item in items) {
+                        ItemHelper.grantItem(ItemHelper.ITEM_MAP[item.item]!!)
+                    }
+                    GameWindow.inst.refreshChecks(ChessBoard.currentBoardType)
+                    // TODO: update state
                 }
-                val locations = data.get("locations").asJsonArray.map { APNetworkItem.fromJson(it.asJsonObject) }
-            }
-            "RoomUpdate" -> {
-                // TODO: contains same arguments as RoomInfo
-                // TODO: if connected, also contains Connected arguments
-                // NOTE: players argument only sent on alias change
-                // NOTE: checked_locations only contains new locations and missing_locations is inferred
-            }
-            "PrintJSON" -> {
-                // TODO: has a lot of varied info that will be useful for appropriately grouping messages
-            }
-            "DataPackage" -> {
-                // Response packet for GetDataPackage during handshake
-                if (connectionState != 1) {
-                    println("[WARN] DataPackage packet received at wrong time, ignoring")
-                    return null
+                "LocationInfo" -> {
+                    // Response packet for LocationScouts
+                    if (connectionState != 3) {
+                        println("[WARN] LocationInfo packet received at wrong time, ignoring")
+                        return null
+                    }
+                    val locations = data.get("locations").asJsonArray.map { APNetworkItem.fromJson(it.asJsonObject) }
                 }
-                TODO()
-            }
-            "Bounced" -> {
-                // Response packet for Bounce, ignored
-                // NOTE: This is needed for DeathLink
-            }
-            "InvalidPacket" -> {
-                val problem = data.get("type").asString
-                println("[ERR ] Invalid packet was sent: ${data.get("text").asString}")
-                if (problem == "arguments") {
-                    println("[ERR ] - Original packet: ${data.get("original_cmd").asString}")
+                "RoomUpdate" -> {
+                    // TODO: contains same arguments as RoomInfo
+                    // TODO: if connected, also contains Connected arguments
+                    // NOTE: players argument only sent on alias change
+                    // NOTE: checked_locations only contains new locations and missing_locations is inferred
                 }
-                else println("[ERR ] - Original packet could not be parsed")
+                "PrintJSON" -> {
+                    // TODO: has a lot of varied info that will be useful for appropriately grouping messages
+                }
+                "DataPackage" -> {
+                    // Response packet for GetDataPackage during handshake
+                    if (connectionState != 1) {
+                        println("[WARN] DataPackage packet received at wrong time, ignoring")
+                        return null
+                    }
+                    TODO()
+                }
+                "Bounced" -> {
+                    // Response packet for Bounce, ignored
+                    // NOTE: This is needed for DeathLink
+                }
+                "InvalidPacket" -> {
+                    val problem = data.get("type").asString
+                    println("[ERR ] Invalid packet was sent: ${data.get("text").asString}")
+                    if (problem == "arguments") {
+                        println("[ERR ] - Original packet: ${data.get("original_cmd").asString}")
+                    }
+                    else println("[ERR ] - Original packet could not be parsed")
+                }
+                "Retrieved" -> {
+                    // Response packet for Get, ignored
+                }
+                "SetReply" -> {
+                    // Response packet for Set/SetNotify, ignored
+                }
+                else -> println("[WARN] Unknown packet type: $id")
             }
-            "Retrieved" -> {
-                // Response packet for Get, ignored
-            }
-            "SetReply" -> {
-                // Response packet for Set/SetNotify, ignored
-            }
-            else -> println("[WARN] Unknown packet type: $id")
         }
         return null
+    }
+
+    private fun sendPacket(packet: JsonObject) {
+        println("Text out: [$packet]")
+        socket?.sendText("[${packet}]", true)
     }
 
     fun sendConnect(name: String, uuid: String, password: String?) {
@@ -196,7 +226,7 @@ class APConnectionManager : WebSocket.Listener {
             println("[WARN] Tried to send Connect before connecting")
             return
         }
-        if (connectionState != 0) {
+        if (connectionState != 2) {
             println("[WARN] Tried to send Connect at wrong time")
             return
         }
@@ -205,13 +235,14 @@ class APConnectionManager : WebSocket.Listener {
         obj.add("game", JsonPrimitive(GAME_NAME))
         obj.add("name", JsonPrimitive(name))
         obj.add("uuid", JsonPrimitive(uuid))
-        if (password != null) obj.add("password", JsonPrimitive(password))
+        obj.add("password", if (password == null) null else JsonPrimitive(password))
         obj.add("version", AP_VERSION.toJson())
         obj.add("items_handling", JsonPrimitive(0b111))
         val arr = JsonArray()
-        arr.add("AP")
+        //arr.add("AP")
         obj.add("tags", arr)
-        socket?.sendText(obj.toString(), true)
+        obj.add("slot_data", JsonPrimitive(true))
+        sendPacket(obj)
     }
 
     fun requestSync() {
@@ -226,11 +257,11 @@ class APConnectionManager : WebSocket.Listener {
         }
         val obj = JsonObject()
         obj.add("cmd", JsonPrimitive("Sync"))
-        socket?.sendText(obj.toString(), true)
+        sendPacket(obj)
     }
 
-    fun sendLocation(location: String) = sendLocations(listOf(location))
-    fun sendLocations(locations: List<String>) {
+    fun sendLocation(location: Int) = sendLocations(listOf(location))
+    fun sendLocations(locations: List<Int>) {
         if (socket == null) {
             println("[WARN] Tried to send LocationChecks before connecting")
             return
@@ -244,7 +275,7 @@ class APConnectionManager : WebSocket.Listener {
         val arr = JsonArray()
         locations.forEach { arr.add(it) }
         obj.add("locations", arr)
-        socket?.sendText(obj.toString(), true)
+        sendPacket(obj)
     }
 
     fun requestLocationHint(location: String) {
@@ -272,6 +303,6 @@ class APConnectionManager : WebSocket.Listener {
         val obj = JsonObject()
         obj.add("cmd", JsonPrimitive("Say"))
         obj.add("text", JsonPrimitive(text))
-        socket?.sendText(obj.toString(), true)
+        sendPacket(obj)
     }
 }

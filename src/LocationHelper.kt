@@ -369,11 +369,22 @@ class LocationHelper {
         val collected = ArrayList<String>()
         fun collectLocation(location: String) {
             if (collected.contains(location)) return
-            if (!ALL_CHECKS.values.contains(location)) return
-            collected.add(location)
+            val id = ALL_CHECKS.entries.firstOrNull { it.value == location }
+            if (id == null) return
 
+            collected.add(location)
+            GameWindow.conn.sendLocation(id.key)
             // TODO: AP stuff
             println("[COLLECT] $location")
+        }
+
+        fun setLocationList(found: List<Int>, missing: List<Int>) {
+            // called when AP connection is established
+            // TODO: validate found+missing is entire list?
+            collected.clear()
+            for (item in found) {
+                collected.add(ALL_CHECKS[item]!!)
+            }
         }
 
         // TODO: function to load collected locations from AP
