@@ -64,18 +64,22 @@ def get_random_filler_item_name(world: APChessWorld) -> str:
     return "Setup: More Points"
 
 def create_item_with_correct_classification(world: APChessWorld, name: str) -> APChessItem:
-    classification = DEFAULT_ITEM_CLASSIFICATIONS[name] or ItemClassification.useful
-    return ChecksMateItem(name, classification, ITEM_NAME_TO_ID[name], world.player)
+    classification = ItemClassification.useful
+    if name in DEFAULT_ITEM_CLASSIFICATIONS:
+        classification = DEFAULT_ITEM_CLASSIFICATIONS[name]
+    return APChessItem(name, classification, ITEM_NAME_TO_ID[name], world.player)
 
 def create_all_items(world: APChessWorld) -> None:
-    itempool = []
-    for name,id in ITEM_NAME_TO_ID:
-        qty = ITEM_COUNTS[name] or 1
+    number_of_items = 0
+    for name,id in ITEM_NAME_TO_ID.items():
+        qty = 1
+        if name in ITEM_COUNTS:
+            qty = ITEM_COUNTS[name]
         for _ in range(qty):
-            itempool += world.create_item(name)
+            number_of_items += 1
+            world.multiworld.itempool.append(world.create_item(name))
     
-    number_of_items = len(itempool)
     number_of_unfilled_locations = len(world.multiworld.get_unfilled_locations(world.player))
     needed_number_of_filler_items = number_of_unfilled_locations - number_of_items
-    itempool += [world.create_filler() for _ in range(needed_number_of_filler_items)]
-    world.multiworld.itempool += itempool
+    world.multiworld.itempool += [world.create_filler() for _ in range(needed_number_of_filler_items)]
+    

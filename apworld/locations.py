@@ -95,4 +95,4 @@ def get_location_names_with_ids(location_names: list[str]) -> dict[str, int | No
 
 def create_all_locations(world: APChessWorld) -> None:
     region = world.get_region("Game")
-    region.add_location(LOCATION_NAME_TO_ID, APChessLocation)
+    region.add_locations(LOCATION_NAME_TO_ID, APChessLocation)

@@ -25,10 +25,10 @@ PIECE_BOARDS = {
 }
 
 def set_all_location_rules(world: APChessWorld) -> None:
-    for piece,places in PIECE_BOARDS:
+    for piece,places in PIECE_BOARDS.items():
         set_rule(
-            world.get_location("Capture: " .. piece),
-            lambda state: state.has_any(list(map(lambda p: "Board: " .. p, places)), world.player)
+            world.get_location("Capture: " + piece),
+            lambda state: state.has_any(list(map(lambda p: "Board: " + p, places)), world.player)
         )
     # TODO: expected points/unlocks for locations
 
